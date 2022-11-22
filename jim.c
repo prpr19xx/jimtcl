@@ -660,7 +660,7 @@ static void JimPanicDump(int condition, const char *fmt, ...)
  * Memory allocation
  * ---------------------------------------------------------------------------*/
 
-void *Jim_Alloc(int size)
+void *Jim_Alloc(size_t size)
 {
     return size ? malloc(size) : NULL;
 }
@@ -670,7 +670,7 @@ void Jim_Free(void *ptr)
     free(ptr);
 }
 
-void *Jim_Realloc(void *ptr, int size)
+void *Jim_Realloc(void *ptr, size_t size)
 {
     return realloc(ptr, size);
 }
