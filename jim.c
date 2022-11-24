@@ -5527,11 +5527,11 @@ int Jim_Collect(Jim_Interp *interp)
                 /* But if this is a command in the command table with refCount 1
                  * don't mark it since it can be deleted.
                  */
-                if (p == str) {
+                if (p == str && objPtr->refCount == 1) {
                     Jim_HashEntry *he = Jim_FindHashEntry(&interp->commands, objPtr);
-                    if (he && ((Jim_Obj *)Jim_GetHashEntryKey(he))->refCount == 1) {
+                    if (he && (Jim_Obj *)Jim_GetHashEntryKey(he) == objPtr) {
 #ifdef JIM_DEBUG_GC
-                        printf("No MARK: %lu - command with refcount=1\n", idp);
+                        printf("No MARK: %lu - command with refcount=1\n", id);
 #endif
                         break;
                     }
