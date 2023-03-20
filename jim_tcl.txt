@@ -243,9 +243,9 @@ terminal is detected, Emacs-style line editing commands are available, including
 arrow keys, +\^W+ to erase a word, +\^U+ to erase the line, +^R+ for reverse incremental search
 in history. Additionally, the +h+ command may be used to display the command history.
 
-Command line history is automatically saved and loaded from +~/.jim_history+
+Command line history is saved automatically and loaded from +~/.jim_history+
 
-In interactive mode, +jimsh+ automatically runs the script +~/.jimrc+ at startup
+In interactive mode, +jimsh+ runs the script +~/.jimrc+ automatically at startup
 if it exists.
 
 INTERPRETERS
@@ -1323,7 +1323,7 @@ Values marked as +-+ are assigned the default value.
 
 When +'body'+ is being executed, variable names normally refer to local
 variables, which are created automatically when referenced and deleted
-when the procedure returns.  One local variable is automatically created
+when the procedure returns.  One local variable is created automatically
 for each of the procedure's arguments.  Global variables can be
 accessed by invoking the `global` command or via the +::+ prefix.
 
@@ -1442,7 +1442,7 @@ will output:
 
 ARRAYS AS LISTS IN JIM
 ----------------------
-Unlike Tcl, Jim can automatically convert between a list (with an even
+Unlike Tcl, Jim can convert automatically between a list (with an even
 number of elements) and an array value. This is similar to the way Tcl
 can convert between a string and a list.
 
@@ -1670,7 +1670,7 @@ Commands such as `string match`, `lsearch -glob`, `array names` and others use
 
 format and scan
 ~~~~~~~~~~~~~~~
-+format %c+ allows a unicode codepoint to be be encoded. For example, the following will return
++format %c+ allows a unicode codepoint to be encoded. For example, the following will return
 a string with two bytes and one character. The same as +{backslash}ub5+
 
 ----
@@ -2004,7 +2004,7 @@ collect
 ~~~~~~~
 +*collect*+
 
-Normally reference garbage collection is automatically performed periodically.
+Normally reference garbage collection is performed automatically periodically.
 However it may be run immediately with the `collect` command.
 
 See <<_garbage_collection_references_lambda_function,GARBAGE COLLECTION>> for more detail.
@@ -3098,7 +3098,7 @@ First, `local` evaluates +'cmd'+ with the given arguments. The return value must
 be the name of an existing command, which is then marked as having local scope.
 This means that when the current procedure exits, the specified
 command is deleted. This can be useful with `lambda`, local procedures or
-to automatically close a filehandle.
+to close a filehandle automatically.
 
 In addition, if a the command already exists with the same name,
 the existing command will be kept rather than being deleted, and may be called
@@ -4718,7 +4718,7 @@ for the original non-existent command.
 The `unknown` command typically does things like searching
 through library directories for a command procedure with the name
 +'cmdName'+, or expanding abbreviated command names to full-length,
-or automatically executing unknown commands as UNIX sub-processes.
+or executing unknown commands automatically as UNIX sub-processes.
 
 In some cases (such as expanding abbreviations) `unknown` will
 change the original command slightly and then (re-)execute it.
@@ -5024,7 +5024,7 @@ aio
 
 +$handle *sendto* 'str ?address'+::
     Sends the string, +'str'+, to the given address (host:port or path) via the socket using 'sendto(2)'.
-    This is intended for UDP/DGRAM sockets and may give an error or behave in unintended
+    This is intended for UDP/dgram sockets and may give an error or behave in unintended
     ways for other handle types.
     Returns the number of bytes written.
 
@@ -5118,7 +5118,7 @@ eventloop: after, vwait, update
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
 The following commands allow a script to be invoked when the given condition occurs.
-If no script is given, returns the current script. If the given script is the empty, the
+If no script is given, returns the current script. If the given script is empty, the
 handler is removed.
 
 +$handle *readable* '?readable-script?'+::
@@ -5128,7 +5128,7 @@ handler is removed.
     Sets or returns the script for when the socket is writable.
 
 +$handle *onexception* '?exception-script?'+::
-    Sets or returns the script for when oob data received.
+    Sets or returns the script for when OOB data is received.
 
 For compatibility with 'Tcl', these may be prefixed with `fileevent`.  e.g.
 
@@ -5180,7 +5180,7 @@ Scripts are executed at the global scope. If an error occurs during a handler sc
 an attempt is made to call (the user-defined command) `bgerror` with the details of the error.
 If the `bgerror` command does not exist, the error message details are printed to stderr instead.
 
-If a file event handler script generates an error, the handler is automatically removed
+If a file event handler script generates an error, the handler is removed automatically
 to prevent infinite errors. (A time event handler is always removed after execution).
 
 +*bgerror* 'msg'+::
@@ -5243,7 +5243,7 @@ Various socket types may be created.
 This command creates a socket connected (client) or bound (server) to the given
 address.
 
-The returned value is channel and may generally be used with the various file I/O
+The returned value is a channel and generally may be used with the various file I/O
 commands (gets, puts, read, etc.), either as object-based syntax or Tcl-compatible syntax.
 
 ----
@@ -5279,13 +5279,13 @@ The address, +'addr'+, can be given in one of the following forms:
 Note that on many systems, listening on an IPv6 address such as [::] will
 also accept requests via IPv4.
 
-Where a hostname is specified, the +'first'+ returned address is used
+Where a hostname is specified, the +'first'+ returned address
 which matches the socket type is used.
 
 An unconnected dgram socket (either 'dgram' or 'unix.dgram') must use
 `sendto` to specify the destination address.
 
-The path for Unix domain sockets is automatically removed when the socket
+The path for Unix domain sockets is removed automatically when the socket
 is closed. Use `close -nodelete` in the rare case where this behaviour
 should be avoided (e.g. after `os.fork`).
 
@@ -5438,8 +5438,8 @@ and zero or more child nodes (ordered), as well as zero or more attribute/value 
     All operations on the tree are invoked through this object.
 
 +$tree *destroy*+::
-    Destroy the tree and all it's nodes. (Note that the tree will also
-    be automatically garbage collected once it goes out of scope).
+    Destroy the tree and all its nodes. (Note that the tree will also
+    be garbage collected automatically once it goes out of scope).
 
 +$tree *set* 'nodename key value'+::
     Set the value for the given attribute key.
@@ -5478,7 +5478,7 @@ and zero or more child nodes (ordered), as well as zero or more attribute/value 
 
 +$tree *walk* 'nodename' *dfs|bfs* {'actionvar nodevar'} 'script'+::
     Walks the tree starting from the given node, either breadth first (+bfs+)
-    depth first (+dfs+).
+    or depth first (+dfs+).
     The value +"enter"+ or +"exit"+ is stored in variable +'actionvar'+.
     The name of each node is stored in +'nodevar'+.
     The script is evaluated twice for each node, on entry and exit.
@@ -5833,7 +5833,7 @@ CHANGES IN PREVIOUS RELEASES
 
 === In v0.70 ===
 
-1. +platform_tcl()+ settings are now automatically determined
+1. +platform_tcl()+ settings are now determined automatically
 2. Add aio `$handle filename`
 3. Add `info channels`
 4. The 'bio' extension is gone. Now `aio` supports 'copyto'.
