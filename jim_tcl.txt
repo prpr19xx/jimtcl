@@ -34,10 +34,10 @@ available only in Jim Tcl.
 Some notable differences with Tcl 8.5/8.6/8.7 are:
 
 1. Object-based I/O (aio), but with a Tcl-compatibility layer
-2. I/O: Support for sockets and pipes including udp, unix domain sockets and IPv6
+2. I/O: Support for sockets and pipes including UDP, unix domain sockets and IPv6
 3. Integers are 64bit
 4. Support for references (`ref`/`getref`/`setref`) and garbage collection
-5. Builtin dictionary type (`dict`) with some limitations compared to Tcl 8.6
+5. Built-in dictionary type (`dict`) with some limitations compared to Tcl 8.6
 6. `env` command to access environment variables
 7. Operating system features: `os.fork`, `os.uptime`, `wait`, `signal`, `alarm`, `sleep`
 8. Much better error reporting. `info stacktrace` as a replacement for '$errorInfo', '$errorCode'
@@ -47,7 +47,7 @@ Some notable differences with Tcl 8.5/8.6/8.7 are:
 12. Built-in command line editing
 13. Expression shorthand syntax: +$(...)+
 14. Modular build allows many features to be omitted or built as dynamic, loadable modules
-15. Highly suitable for use in an embedded environment
+15. Highly suitable for use in embedded environments
 16. Support for UDP, IPv6, Unix-Domain sockets in addition to TCP sockets
 
 RECENT CHANGES
@@ -238,7 +238,7 @@ those commands and prints the results.
   [error] . exit
   $
 
-If +jimsh+ is configured with line editing (it is by default) and a VT-100-compatible
+If +jimsh+ is configured with line editing (it is by default) and a VT-100 compatible
 terminal is detected, Emacs-style line editing commands are available, including:
 arrow keys, +\^W+ to erase a word, +\^U+ to erase the line, +^R+ for reverse incremental search
 in history. Additionally, the +h+ command may be used to display the command history.
@@ -445,7 +445,7 @@ command is used for substitution.  For example, the command
 
 ----
     set a x[set b 22
-    expr $b+2]x
+    expr {$b+2}]x
 ----
 
 is equivalent to the command
@@ -705,7 +705,7 @@ The index may be one of the following forms:
 COMMAND SUMMARY
 ---------------
 1. A command is just a string.
-2. Within a string commands are separated by newlines or semi-colons
+2. Within a string, commands are separated by newlines or semi-colons
    (unless the newline or semi-colon is within braces or brackets
    or is backslashed).
 3. A command consists of fields.  The first field is the name of the command.
@@ -787,26 +787,25 @@ it).
 String constants representing boolean constants
 (+'0'+, +'1'+, +'false'+, +'off'+, +'no'+, +'true'+, +'on'+, +'yes'+)
 are also recognized and can be used in logical operations.
+Operands may be specified in any of the following ways:
 
-1. Operands may be specified in any of the following ways:
+1. As a numeric value, either integer or floating-point.
 
-2. As a numeric value, either integer or floating-point.
+2. As one of valid boolean constants.
 
-3. As one of valid boolean constants
-
-4. As a Tcl variable, using standard '$' notation.
+3. As a Tcl variable, using standard '$' notation.
 The variable's value will be used as the operand.
 
-5. As a string enclosed in double-quotes.
+4. As a string enclosed in double-quotes.
 The expression parser will perform backslash, variable, and
 command substitutions on the information between the quotes,
-and use the resulting value as the operand
+and use the resulting value as the operand.
 
-6. As a string enclosed in braces.
+5. As a string enclosed in braces.
 The characters between the open brace and matching close brace
 will be used as the operand without any substitutions.
 
-7. As a Tcl command enclosed in brackets.
+6. As a Tcl command enclosed in brackets.
 The command will be executed and its result will be used as
 the operand.
 
@@ -851,7 +850,7 @@ of precedence:
 +- + ~ !+::
     Unary minus, unary plus, bit-wise NOT, logical NOT.  None of these operands
     may be applied to string operands, and bit-wise NOT may be
-    applied only to integers.
+    applied to integers only.
 
 +** pow(x,y)+::
     Power. e.g. 'x^y^'. If Jim is compiled with math support, supports doubles and
@@ -860,8 +859,8 @@ of precedence:
 
 +* / %+::
     Multiply, divide, remainder.  None of these operands may be
-    applied to string operands, and remainder may be applied only
-    to integers.
+    applied to string operands, and remainder may be applied
+    to integers only.
 
 ++ -+::
     Add and subtract.  Valid for any numeric operands.
@@ -1239,7 +1238,7 @@ procedure interpreter handles +JIM_RETURN+ codes.  The `catch`
 command allows Tcl programs to catch errors and handle them without
 aborting command interpretation any further.
 
-The `info returncodes` command may be used to programmatically map between
+The `info returncodes` command may be used to map programmatically between
 return codes and names.
 
 PROCEDURES
@@ -1368,8 +1367,8 @@ Tcl allows the definition of variables and the use of their values
 either through '$'-style variable substitution, the `set`
 command, or a few other mechanisms.
 
-Variables need not be declared:  a new variable will automatically
-be created each time a new variable name is used.
+Variables need not be declared:  a new variable will be created
+automatically each time a new variable name is used.
 
 Tcl supports two types of variables:  scalars and arrays.
 A scalar variable has a single value, whereas an array variable
@@ -1377,7 +1376,7 @@ can have any number of elements, each with a name (called
 its 'index') and a value.
 
 Array indexes may be arbitrary strings; they need not be numeric.
-Parentheses are used refer to array elements in Tcl commands.
+Parentheses are used to refer to array elements in Tcl commands.
 For example, the command
 
 ----
@@ -1417,10 +1416,10 @@ the array and converting between an array and a list.
 
 Variables may be either global or local.  If a variable
 name is used when a procedure isn't being executed, then it
-automatically refers to a global variable.  Variable names used
+refers to a global variable automatically.  Variable names used
 within a procedure normally refer to local variables associated with that
 invocation of the procedure.  Local variables are deleted whenever
-a procedure exits.  Either `global` command may be used to request
+a procedure exits.  Either the `global` command may be used to request
 that a name refer to a global variable for the duration of the current
 procedure (this is somewhat analogous to 'extern' in C), or the variable
 may be explicitly scoped with the +::+ prefix. For example
@@ -1488,7 +1487,7 @@ except that they represent a mapping from keys to values, rather
 than an ordered sequence.
 
 You can nest dictionaries, so that the value for a particular key
-consists of another dictionary. That way you can elegantly build
+consists of another dictionary. That way, you can elegantly build
 complicated data structures, such as hierarchical databases. You
 can also combine dictionaries with other Tcl data structures. For
 instance, you can build a list of dictionaries that themselves
@@ -1506,12 +1505,12 @@ dictionary will have the same order of keys, modulo any deleted
 keys and with new keys added on to the end. When a string is
 interpreted as a dictionary and it would otherwise have duplicate
 keys, only the last value for a particular key is used; the others
-are ignored, meaning that, "apple banana" and "apple carrot apple
+are ignored, meaning that "apple banana" and "apple carrot apple
 banana" are equivalent dictionaries (with different string
 representations).
 
 Note that in Jim, arrays are implemented as dictionaries.
-Thus automatic conversion between lists and dictionaries applies
+Thus, automatic conversion between lists and dictionaries applies,
 as it does for arrays.
 
 ----
@@ -1574,16 +1573,16 @@ stored in the reference.
 ----
 
 The operation `setref` replaces the value stored by the reference. If the old value
-is no longer accessible by any reference, it will eventually be automatically be garbage
-collected.
+is no longer accessible by any reference, it will eventually be garbage collected
+automatically.
 
 Garbage Collection
 ~~~~~~~~~~~~~~~~~~
-Normally, all values in Tcl are passed by value. As such values are copied and released
+Normally, all values in Tcl are passed by value. As such, values are copied and released
 automatically as necessary.
 
 With the introduction of references, it is possible to create values whose lifetime
-transcend their scope. To support this, case, the Jim system will periodically identify
+transcend their scope. To support this case, the Jim system will periodically identify
 and discard objects which are no longer accessible by any reference.
 
 The `collect` command may be used to force garbage collection.  Consider a reference created
@@ -1628,13 +1627,13 @@ which is able to create an anonymous procedure.  Consider:
     . set f ""
 ----
 
-This create an anonymous procedure (with the name stored in 'f'), with a static variable
+This creates an anonymous procedure (with the name stored in 'f'), with a static variable
 which is incremented by the supplied value and the result returned.
 
-Once the procedure name is no longer accessible, it will automatically be deleted
+Once the procedure name is no longer accessible, it will be deleted automatically
 when the garbage collector runs.
 
-The procedure may also be delete immediately by renaming it "". e.g.
+The procedure may also be deleted immediately by renaming it "". e.g.
 
 ----
     . rename $f ""
@@ -5025,7 +5024,7 @@ aio
 
 +$handle *sendto* 'str ?address'+::
     Sends the string, +'str'+, to the given address (host:port or path) via the socket using 'sendto(2)'.
-    This is intended for udp/dgram sockets and may give an error or behave in unintended
+    This is intended for UDP/DGRAM sockets and may give an error or behave in unintended
     ways for other handle types.
     Returns the number of bytes written.
 
@@ -5855,7 +5854,7 @@ CHANGES IN PREVIOUS RELEASES
 5. Add `alias` and `curry`
 6. `lambda`, `alias` and `curry` are implemented via `tailcall` for efficiency
 7. `local` allows procedures to be deleted automatically at the end of the current procedure
-8. udp sockets are now supported for both clients and servers.
+8. UDP sockets are now supported for both clients and servers.
 9. vfork-based exec is now working correctly
 10. Add 'file tempfile'
 11. Add 'socket pipe'
