@@ -81,11 +81,12 @@ proc class {classname {baseclasses {}} classvars} {
 	$classname method defaultconstructor {{__vars {}}} {
 		set __classvars [$self classvars]
 		foreach __v [dict keys $__vars] {
-			if {![dict exists $__classvars $__v]} {
+			if {[dict exists $__classvars $__v]} {
+				set $__v [dict get $__vars $__v]
+			} else {
 				# level 3 because defaultconstructor is called by new
-				return -code error -level 3 "[lindex [info level 0] 0], $__v is not a class variable"
+#				return -code error -level 3 "[lindex [info level 0] 0], $__v is not a class variable"
 			}
-			set $__v [dict get $__vars $__v]
 		}
 	}
 	alias "$classname constructor" "$classname defaultconstructor"
