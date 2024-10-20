@@ -90,7 +90,11 @@ int main(int argc, char *const argv[])
 
     /* Parse initial arguments before interpreter is started */
     if (argc > 1 && strcmp(argv[1], "--version") == 0) {
+#ifdef JIM_GITVERSION
+        printf("%d.%d (%s)\n", JIM_VERSION / 100, JIM_VERSION % 100, JIM_GITVERSION);
+#else
         printf("%d.%d\n", JIM_VERSION / 100, JIM_VERSION % 100);
+#endif
         return 0;
     }
     else if (argc > 1 && strcmp(argv[1], "--help") == 0) {
