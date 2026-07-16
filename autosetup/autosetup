@@ -6,7 +6,7 @@
 dir=`dirname "$0"`; exec "`$dir/autosetup-find-tclsh`" "$0" "$@"
 
 # Note that the version has a trailing + on unreleased versions
-set autosetup(version) 0.7.2
+set autosetup(version) 0.7.3
 
 # Can be set to 1 to debug early-init problems
 set autosetup(debug) [expr {"--debug" in $argv}]
@@ -79,7 +79,10 @@ proc main {argv} {
 	set autosetup(optdefault) {}
 	# options-defaults is a dictionary of overrides for default values for options
 	set autosetup(options-defaults) {}
+	# optionhelp is a list of lists of {option module description}
 	set autosetup(optionhelp) {}
+	# options-defaults-help is a dictionary of replacment help text for options
+	set autosetup(options-defaults-help) {}
 	set autosetup(showhelp) 0
 
 	use util
@@ -139,9 +142,7 @@ proc main {argv} {
 
 	# If the local module exists, source it now to allow for
 	# project-local customisations
-	if {[file exists $autosetup(libdir)/local.tcl]} {
-		use local
-	}
+	use -missingok local
 
 	# Now any auto-load modules
 	autosetup_load_auto_modules
@@ -388,11 +389,8 @@ proc options-add {opts} {
 
 	for {set i 0} {$i < [llength $opts]} {incr i} {
 		set opt [lindex $opts $i]
-		if {[string match =* $opt]} {
-			# This is a special heading
-			lappend autosetup(optionhelp) [list $opt $autosetup(module)]
-			continue
-		}
+		# Note that previously we supported special headings with a "=" prefix
+		# This is no longer supported
 		unset -nocomplain defaultvalue equal value
 
 		#puts "i=$i, opt=$opt"
@@ -406,8 +404,8 @@ proc options-add {opts} {
 		# Find the corresponding value in the user options
 		# and set the default if necessary
 		if {[string match "-*" $opt]} {
-			# This is a documentation-only option, like "-C <dir>"
-			set opthelp $opt
+			# We no longer support documentation-only options, like "-C <dir>"
+			autosetup-error "Option $opt is not supported"
 		} elseif {$colon eq ""} {
 			# Boolean option
 			lappend autosetup(options) $name
@@ -502,14 +500,20 @@ proc options-add {opts} {
 		}
 
 		# Now create the help for this option if appropriate
+		# taking into account any options-default help text
+		unset -nocomplain desc
 		if {[lindex $opts $i+1] eq "=>"} {
 			set desc [lindex $opts $i+2]
+			incr i 2
+		}
+		if {[dict exists $autosetup(options-defaults-help) $name]} {
+			set desc [dict get $autosetup(options-defaults-help) $name]
+		}
+		if {[info exists desc]} {
 			if {[info exists defaultvalue]} {
 				set desc [string map [list @default@ $defaultvalue] $desc]
 			}
-			# A multi-line description
 			lappend autosetup(optionhelp) [list $opthelp $autosetup(module) $desc]
-			incr i 2
 		}
 	}
 }
@@ -564,11 +568,16 @@ proc options-show {what} {
 		set max [max $max [string length $opt]]
 	}
 	set indent [string repeat " " [expr {$max+4}]]
-	set cols [getenv COLUMNS 80]
-	catch {
-		lassign [exec stty size] _ sttycols
-		if {[string is integer -strict $sttycols]} {
-			set cols $sttycols
+	# $COLUMNS overrides stty for window width
+	set cols 80
+	if {[env-is-set COLUMNS]} {
+		set cols [getenv COLUMNS]
+	} else {
+		catch {
+			lassign [exec stty size] _ sttycols
+			if {[string is integer -strict $sttycols]} {
+				set cols $sttycols
+			}
 		}
 	}
 	incr cols -1
@@ -581,11 +590,6 @@ proc options-show {what} {
 		if {$local == 0 && $module eq "auto.def"} {
 			puts "Local Options:"
 			incr local
-		}
-		if {[string match =* $opt]} {
-			# Output a special heading line"
-			puts [string range $opt 1 end]
-			continue
 		}
 		puts -nonewline "  [format %-${max}s $opt]"
 		if {[string match \n* $desc]} {
@@ -655,14 +659,19 @@ proc options {optlist} {
 	}
 }
 
-# @options-defaults dictionary
+# @options-defaults {name value ?=> "Help text"? ...}
 #
 # Specifies a dictionary of options and a new default value for each of those options.
+# After any option it is possible to specify replacement help text with "=> Help text".
 # Use before any 'use' statements in 'auto.def' to change the defaults for
 # subsequently included modules.
 proc options-defaults {dict} {
 	foreach {n v} $dict {
+		if {$n eq "=>"} {
+			dict set ::autosetup(options-defaults-help) $prevn $v
+		}
 		dict set ::autosetup(options-defaults) $n $v
+		set prevn $n
 	}
 }
 
@@ -1202,7 +1211,22 @@ proc autosetup_add_dep {filename} {
 # Library module support
 #
 
-# @use module ...
+# Returns the list of directories to search for library modules.
+proc autosetup_libdirs {} {
+	global autosetup
+	set dirs {}
+	# srcdir may not be set (during bootstrap)
+	# Search local before libdir so user modules take precedence
+	if {[info exists autosetup(srcdir)]} {
+		lappend dirs $autosetup(srcdir)/autosetup
+	}
+	if {$autosetup(libdir) ni $dirs} {
+		lappend dirs $autosetup(libdir)
+	}
+	return $dirs
+}
+
+# @use ?-missingok? module ...
 #
 # Load the given library modules.
 # e.g. 'use cc cc-shared'
@@ -1214,13 +1238,17 @@ proc autosetup_add_dep {filename} {
 # support file. In this form, '$::usedir' is set to the module directory
 # when it is loaded.
 #
+# If -missingok is given, missing modules are ignored instead of generating an error.
 proc use {args} {
 	global autosetup libmodule modsource
 
-	set dirs [list $autosetup(libdir)]
-	if {[info exists autosetup(srcdir)]} {
-		lappend dirs $autosetup(srcdir)/autosetup
+	set missingok 0
+	if {[lindex $args 0] eq "-missingok"} {
+		set args [lrange $args 1 end]
+		set missingok 1
 	}
+
+	set dirs [autosetup_libdirs]
 	foreach m $args {
 		if {[info exists libmodule($m)]} {
 			continue
@@ -1228,8 +1256,10 @@ proc use {args} {
 		set libmodule($m) 1
 
 		if {[info exists modsource(${m}.tcl)]} {
+			dputs "Loading embedded module $m"
 			autosetup_load_module $m eval $modsource(${m}.tcl)
 		} else {
+			#dputs "Searching for module $m in $dirs"
 			set locs [list ${m}.tcl ${m}/init.tcl]
 			set found 0
 			foreach dir $dirs {
@@ -1248,9 +1278,10 @@ proc use {args} {
 				# For the convenience of the "use" source, point to the directory
 				# it is being loaded from
 				set ::usedir [file dirname $source]
+				dputs "Loading module $m from $source"
 				autosetup_load_module $m source $source
 				autosetup_add_dep $source
-			} else {
+			} elseif {!$missingok} {
 				autosetup-error "use: No such module: $m"
 			}
 		}
@@ -1261,11 +1292,17 @@ proc autosetup_load_auto_modules {} {
 	global autosetup modsource
 	# First load any embedded auto modules
 	foreach mod [array names modsource *.auto] {
+		dputs "Loading embedded auto module $mod"
 		autosetup_load_module $mod eval $modsource($mod)
 	}
 	# Now any external auto modules
-	foreach file [glob -nocomplain $autosetup(libdir)/*.auto $autosetup(libdir)/*/*.auto] {
-		autosetup_load_module [file tail $file] source $file
+	set dirs [autosetup_libdirs]
+	dputs "Loading auto modules from $dirs"
+	foreach dir $dirs {
+		foreach file [glob -nocomplain $dir/*.auto $dir/*/*.auto] {
+			dputs "Loading auto module $file"
+			autosetup_load_module [file tail $file] source $file
+		}
 	}
 }
 
@@ -1611,7 +1648,7 @@ proc autosetup_output_block {type lines} {
 # Generate a command reference from inline documentation
 proc automf_command_reference {} {
     lappend files $::autosetup(prog)
-    lappend files {*}[lsort [glob -nocomplain $::autosetup(libdir)/*.tcl]]
+    lappend files {*}[lsort [glob -nocomplain $::autosetup(libdir)/{*/*.tcl,*.tcl}]]
 
     # We want to process all non-module files before module files
     # and then modules in alphabetical order.
@@ -1634,8 +1671,8 @@ proc automf_command_reference {} {
 
             if {[regexp {^#.*@section (.*)$} $line -> section]} {
                 lappend doc($current) [list section $section]
-				continue
-			}
+                continue
+            }
 
             # Find embedded module names
             if {[regexp {^#.*@module ([^ ]*)} $line -> modulename]} {
@@ -1651,7 +1688,7 @@ proc automf_command_reference {} {
             if {$cmd eq "synopsis:"} {
                 set current $modulename
                 lappend doc($current) [list section "Module: $modulename"]
-			} else {
+            } else {
                 lappend doc($current) [list subsection $cmd]
             }
 
@@ -2088,8 +2125,12 @@ if {$autosetup(iswin)} {
 	proc split-path {} {
 		split [getenv PATH .] :
 	}
+	# Check for an executable file
 	proc file-isexec {exec} {
-		file executable $exec
+		if {[file executable $exec] && [file isfile $exec]} {
+			return 1
+		}
+		return 0
 	}
 }
 
@@ -2120,7 +2161,7 @@ if {$autosetup(istcl)} {
 			set frame [info frame -$i]
 			if {[dict exists $frame file]} {
 				# We don't need proc, so use ""
-				lappend stacktrace "" [dict get $frame file] [dict get $frame line]
+				lappend stacktrace "" [dict get $frame file] [dict get $frame line] ""
 			}
 		}
 		return $stacktrace
@@ -2177,8 +2218,12 @@ proc error-location {msg} {
 	if {$::autosetup(debug)} {
 		return -code error $msg
 	}
-	# Search back through the stack trace for the first error in a .def file
-	foreach {p f l} [stacktrace] {
+	set vars {p f l cmd}
+	if {!$::autosetup(istcl) && ![dict exists $::tcl_platform stackFormat]} {
+		# Older versions of Jim had a 3 element stacktrace
+		set vars {p f l}
+	}
+	foreach $vars [stacktrace] {
 		if {[string match *.def $f]} {
 			return "[relative-path $f]:$l: Error: $msg"
 		}

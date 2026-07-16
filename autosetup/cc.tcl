@@ -686,16 +686,23 @@ proc cc-init {} {
 		define $var [get-env $var $default]
 	}
 
+	set try {}
 	if {[env-is-set CC]} {
 		# Set by the user, so don't try anything else
-		set try [list [get-env CC ""]]
+		lappend try [get-env CC ""]
 	} else {
 		# Try some reasonable options
-		set try [list [get-define cross]cc [get-define cross]gcc]
+		lappend try [get-define cross]cc [get-define cross]gcc
+		# If --host and --build are the same, this isn't really
+		# a cross build, so try 'cc' and 'gcc'. In this case we will reset cross later.
+		if {[get-define host] eq [get-define build]} {
+			lappend try cc gcc
+		}
 	}
-	define CC [find-an-executable {*}$try]
-	if {[get-define CC] eq ""} {
-		user-error "Could not find a C compiler. Tried: [join $try ", "]"
+	define CC [find-an-executable -required {*}$try]
+	# If we found cc or gcc, set cross to ""
+	if {[get-define CC] in {cc gcc}} {
+		define cross ""
 	}
 
 	define CPP [get-env CPP "[get-define CC] -E"]
@@ -703,10 +710,11 @@ proc cc-init {} {
 	# XXX: Could avoid looking for a C++ compiler until requested
 	# If CXX isn't found, it is set to the empty string.
 	if {[env-is-set CXX]} {
-		define CXX [find-an-executable -required [get-env CXX ""]]
+		set try [list -required [get-env CXX ""]]
 	} else {
-		define CXX [find-an-executable [get-define cross]c++ [get-define cross]g++]
+		set try [list [get-define cross]c++ [get-define cross]g++]
 	}
+	define CXX [find-an-executable {*}$try]
 
 	# CXXFLAGS default to CFLAGS if not specified
 	define CXXFLAGS [get-env CXXFLAGS [get-define CFLAGS]]
