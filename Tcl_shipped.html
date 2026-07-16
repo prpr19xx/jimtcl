@@ -739,7 +739,7 @@ Jim Tcl(n) Manual Page
 </h1>
 <h2>NAME</h2>
 <div class="sectionbody">
-<p>Jim Tcl v0.83+ -
+<p>Jim Tcl v0.84 -
    reference manual for the Jim Tcl scripting language
 </p>
 </div>
@@ -2241,6 +2241,15 @@ of precedence:</p></div>
 <dd>
 <p>
     Left and right shift, left and right rotate.  Valid for integer operands only.
+</p>
+</dd>
+<dt class="hdlist1">
+ 
+</dt>
+<dd>
+<p>
+    <strong>NOTE</strong> The rotate operations are specific to Jim Tcl and operate on unsigned
+    32 bit integers, even if the native word size is 64 bits.
 </p>
 </dd>
 <dt class="hdlist1">
